@@ -1,8 +1,18 @@
-import unittest
+import csv, unittest
 from pyunitreport import HTMLTestRunner
 from selenium import webdriver
-from selenium.webdriver.support import expected_conditions as EC
 from ddt import ddt, data, unpack
+
+def get_data(file_name):
+    rows = []
+    data_file = open(file_name, 'r')
+    reader = csv.reader(data_file)
+    next(reader, None)
+
+    for row in reader:
+        rows.append(row)
+
+    return rows
 
 @ddt
 class SearchDDT(unittest.TestCase):
@@ -12,7 +22,10 @@ class SearchDDT(unittest.TestCase):
         driver = self.driver
         driver.get("http://demo-store.seleniumacademy.com/")
 
-    @data(('dress', 6), ('music', 5))
+    # For tuples and packed values, use @unpack
+    # @data(('dress', 6), ('music', 5))
+
+    @data(*get_data('testdata.csv'))
     @unpack
 
     def test_search_ddt(self, search_value, expected_count):
@@ -24,13 +37,17 @@ class SearchDDT(unittest.TestCase):
         search_field.submit()
         
         products = driver.find_elements_by_xpath('//h2[@class="product-name"]/a')
+
+        expected_count = int(expected_count)
+
+        if expected_count > 0:
+            self.assertEqual(expected_count, len(products))
+        else:
+            message = driver.find_elements_by_class_name('note-msg')
+            self.assertEqual('Your search returns no results.', message[0].text)
+        
         print(f'Found {len(products)} products for {search_value}')
-
-        for product in products:
-            print(product.text)
-
-        self.assertEqual(expected_count, len(products))
-
+        
 
 
     def tearDown(self):
